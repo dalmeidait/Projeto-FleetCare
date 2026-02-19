@@ -1,0 +1,91 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"  // <--- A CORREÇÃO ESTÁ AQUI (O -js é obrigatório)
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // <--- Faltava dizer onde o banco está
+}
+
+// --- MÓDULO DE SEGURANÇA E ACESSO (RBAC) ---
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   // Hash criptografado
+  role      Role     @default(MECHANIC)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workOrders WorkOrder[]
+}
+
+enum Role {
+  ADMIN
+  MECHANIC
+  RECEPTION
+}
+
+// --- MÓDULO DE CLIENTES E VEÍCULOS ---
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String
+  document  String   @unique
+  phone     String
+  email     String?
+  address   String?
+  
+  vehicles  Vehicle[]
+}
+
+model Vehicle {
+  id           String      @id @default(uuid())
+  plate        String      @unique
+  vin          String      @unique
+  brand        String
+  model        String
+  year         Int
+  fuelType     FuelType
+  
+  clientId     String
+  client       Client      @relation(fields: [clientId], references: [id])
+  
+  workOrders   WorkOrder[]
+}
+
+enum FuelType {
+  COMBUSTION
+  ELECTRIC
+  HYBRID
+}
+
+// --- MÓDULO OPERACIONAL (ORDEM DE SERVIÇO) ---
+
+model WorkOrder {
+  id          String    @id @default(uuid())
+  number      Int       @default(autoincrement())
+  status      OsStatus  @default(OPEN)
+  description String
+  
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  
+  vehicleId   String
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id])
+  
+  mechanicId  String?
+  mechanic    User?     @relation(fields: [mechanicId], references: [id])
+}
+
+enum OsStatus {
+  OPEN
+  DIAGNOSIS
+  WAITING_PART
+  IN_PROGRESS
+  FINISHED
+  CANCELED
+}
