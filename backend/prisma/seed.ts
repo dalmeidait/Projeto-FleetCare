@@ -1,16 +1,13 @@
-// backend/prisma/seed.ts
-import { PrismaClient } from '@prisma/client'
-import { hash } from 'bcryptjs'
+import { PrismaClient } from '@prisma/client';
+import { hash } from 'bcryptjs';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  // 1. Criptografar a senha (hash)
-  // O número 8 é o "salt" (custo do processamento), ideal para performance/segurança
-  const passwordHash = await hash('admin123', 8)
+  const passwordHash = await hash('admin123', 8);
 
-  // 2. Criar o usuário Admin (usando 'upsert' para não duplicar se já existir)
-  const user = await prisma.user.upsert({
+  // 1. Criar/Atualizar Usuário ADMIN
+  await prisma.user.upsert({
     where: { email: 'admin@fleetcare.com' },
     update: {},
     create: {
@@ -19,17 +16,44 @@ async function main() {
       password: passwordHash,
       role: 'ADMIN',
     },
-  })
+  });
 
-  console.log({ user })
+  // 2. Criar/Atualizar Usuário MECÂNICO
+  const mechanicPassword = await hash('123456', 8);
+  await prisma.user.upsert({
+    where: { email: 'silva@fleetcare.com' },
+    update: {},
+    create: {
+      name: 'Mecânico Silva',
+      email: 'silva@fleetcare.com',
+      password: mechanicPassword,
+      role: 'MECHANIC',
+    },
+  });
+
+  // 3. Criar/Atualizar um Cliente Padrão para testarmos os veículos
+  const client = await prisma.client.upsert({
+    where: { document: '111.222.333-44' },
+    update: {},
+    create: {
+      name: 'Empresa Logística S/A',
+      document: '111.222.333-44',
+      phone: '(11) 99999-9999',
+      email: 'contato@logistica.com',
+    },
+  });
+
+  console.log('✅ Seed finalizado: Admin, Mecânico e Cliente criados/atualizados.');
+  console.log('================================================================');
+  console.log(`📌 ID DO CLIENTE (Copie isso): ${client.id}`);
+  console.log('================================================================');
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
   })
-  .catch(async (e) => {
-    console.error(e)
-    await prisma.$disconnect()
-    process.exit(1)
-  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
