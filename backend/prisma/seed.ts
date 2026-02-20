@@ -1,51 +1,63 @@
+// backend/prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const passwordHash = await hash('admin123', 8);
+  // Senha padrão para toda a nova equipe
+  const defaultPassword = await hash('123456', 8);
 
-  // 1. Criar/Atualizar Usuário ADMIN
-  await prisma.user.upsert({
-    where: { email: 'admin@fleetcare.com' },
+  console.log('⏳ Contratando a equipe da Oficina Avance...');
+
+  // 1. Lista com todos os funcionários, com o novo login da Oficina Avance!
+  const employees = [
+    { email: 'daniel@oficinaavance.com.br', name: 'Daniel Barros Almeida', role: 'ADMIN', department: 'Diretoria' },
+    { email: 'paulo@oficinaavance.com.br', name: 'Paulo Roberto da Silveira', role: 'MANAGER', department: 'Gerência' },
+    { email: 'leticia@oficinaavance.com.br', name: 'Letícia Cunha Ribeiro', role: 'ADMIN_AUX', department: 'Administração' },
+    { email: 'estela@oficinaavance.com.br', name: 'Estela Silva Maria da Cruz', role: 'ADMIN_AUX', department: 'Administração' },
+    { email: 'roberval@oficinaavance.com.br', name: 'Roberval Dantas Almeida', role: 'MECHANIC', department: 'Oficina' },
+    { email: 'jose@oficinaavance.com.br', name: 'José Tulio Bastos de Andrade', role: 'MECHANIC', department: 'Oficina' },
+    { email: 'leonardo@oficinaavance.com.br', name: 'Leonardo Freitas da Silva', role: 'RECEPTIONIST', department: 'Recepção' },
+    { email: 'tatiane@oficinaavance.com.br', name: 'Tatiane Dias Gomes', role: 'RECEPTIONIST', department: 'Recepção' },
+  ] as const;
+
+  // 2. Criar ou atualizar cada funcionário no banco
+  for (const emp of employees) {
+    await prisma.user.upsert({
+      where: { email: emp.email },
+      update: {
+        name: emp.name,
+        role: emp.role,
+        department: emp.department,
+      },
+      create: {
+        name: emp.name,
+        email: emp.email,
+        password: defaultPassword,
+        role: emp.role,
+        department: emp.department,
+      },
+    });
+  }
+
+  // 3. Cliente genérico só para manter a estrutura funcionando (você edita/exclui depois)
+  await prisma.client.upsert({
+    where: { document: '000.000.000-00' },
     update: {},
     create: {
-      name: 'Admin FleetCare',
-      email: 'admin@fleetcare.com',
-      password: passwordHash,
-      role: 'ADMIN',
+      name: 'Cliente Avulso',
+      document: '000.000.000-00',
+      phone: '(00) 00000-0000',
+      email: 'contato@cliente.com',
     },
   });
 
-  // 2. Criar/Atualizar Usuário MECÂNICO
-  const mechanicPassword = await hash('123456', 8);
-  await prisma.user.upsert({
-    where: { email: 'silva@fleetcare.com' },
-    update: {},
-    create: {
-      name: 'Mecânico Silva',
-      email: 'silva@fleetcare.com',
-      password: mechanicPassword,
-      role: 'MECHANIC',
-    },
-  });
-
-  // 3. Criar/Atualizar um Cliente Padrão para testarmos os veículos
-  const client = await prisma.client.upsert({
-    where: { document: '111.222.333-44' },
-    update: {},
-    create: {
-      name: 'Empresa Logística S/A',
-      document: '111.222.333-44',
-      phone: '(11) 99999-9999',
-      email: 'contato@logistica.com',
-    },
-  });
-
-  console.log('✅ Seed finalizado: Admin, Mecânico e Cliente criados/atualizados.');
+  console.log('✅ Equipe da Oficina Avance cadastrada com sucesso!');
   console.log('================================================================');
-  console.log(`📌 ID DO CLIENTE (Copie isso): ${client.id}`);
+  console.log('🔐 DADOS DE ACESSO DA EQUIPE:');
+  console.log('Login: e-mail do funcionário (ex: daniel@oficinaavance.com.br)');
+  console.log('Senha: 123456');
   console.log('================================================================');
 }
 

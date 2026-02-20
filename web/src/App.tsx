@@ -2,7 +2,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-import { Clients } from './pages/Clients'; // <-- 1. Importamos a nossa nova tela!
+import { Clients } from './pages/Clients';
+import { Profile } from './pages/Profile'; // <-- Importamos a tela de Perfil!
 
 function App() {
   return (
@@ -10,7 +11,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/clients" element={<Clients />} /> {/* <-- 2. Criamos o caminho para ela! */}
+        <Route path="/clients" element={<Clients />} />
+        <Route path="/profile" element={<Profile />} /> {/* <-- Rota adicionada! */}
       </Routes>
     </BrowserRouter>
   );

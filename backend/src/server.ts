@@ -11,6 +11,6 @@ app.use(router);
 
 const PORT = 3333;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(3333, '0.0.0.0', () => {
+  console.log('🚀 Server running on port 3333 e visível na rede!');
 });
