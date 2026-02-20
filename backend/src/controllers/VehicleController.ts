@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export class VehicleController {
   
-  // 1. Função para CADASTRAR
+  // 1. CRIAR (Create)
   async create(req: Request, res: Response) {
     const { plate, vin, brand, model, year, fuelType, clientId } = req.body;
 
@@ -32,7 +32,7 @@ export class VehicleController {
     }
   }
 
-  // 2. Função para LISTAR (Era essa que estava faltando!)
+  // 2. LER/LISTAR (Read) - A função que o servidor estava sentindo falta!
   async list(req: Request, res: Response) {
     try {
       const vehicles = await prisma.vehicle.findMany({
@@ -44,7 +44,24 @@ export class VehicleController {
     }
   }
 
-  // 3. Função para DELETAR
+  // 3. ATUALIZAR/EDITAR (Update)
+  async update(req: Request, res: Response) {
+    const { id } = req.params;
+    const { plate, vin, brand, model, year, fuelType, clientId } = req.body;
+
+    try {
+      const vehicle = await prisma.vehicle.update({
+        where: { id },
+        data: { plate, vin, brand, model, year: Number(year), fuelType, clientId }
+      });
+      return res.json(vehicle);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Erro ao atualizar veículo." });
+    }
+  }
+
+  // 4. DELETAR (Delete)
   async delete(req: Request, res: Response) {
     const { id } = req.params;
 

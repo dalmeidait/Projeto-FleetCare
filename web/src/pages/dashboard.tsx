@@ -2,26 +2,36 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { LogOut, LayoutDashboard, Car, Edit, Trash2, Plus, X } from 'lucide-react';
+import { LogOut, LayoutDashboard, Car, Edit, Trash2, Plus, X, Users } from 'lucide-react'; // <-- Importei o ícone Users aqui!
+
+interface Client {
+  id: string;
+  name: string;
+}
 
 interface Vehicle {
   id: string;
   plate: string;
+  vin: string;
   brand: string;
   model: string;
   year: number;
   fuelType: string;
   client: { name: string };
+  clientId: string; 
 }
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
-    plate: '', vin: '', brand: '', model: '', year: '', fuelType: 'COMBUSTION'
+    plate: '', vin: '', brand: '', model: '', year: '', fuelType: 'COMBUSTION', clientId: ''
   });
 
   async function fetchVehicles() {
@@ -35,34 +45,71 @@ export function Dashboard() {
       setVehicles(response.data);
     } catch (error) {
       console.error("Erro ao buscar veículos", error);
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  async function fetchClients() {
+    const token = localStorage.getItem('@FleetCare:token');
+    try {
+      const response = await axios.get('http://localhost:3333/clients', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setClients(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar clientes", error);
     }
   }
 
   useEffect(() => {
     fetchVehicles();
+    fetchClients().finally(() => setLoading(false));
   }, [navigate]);
 
-  async function handleCreateVehicle(e: FormEvent) {
+  function handleOpenCreate() {
+    setEditingId(null);
+    setFormData({ plate: '', vin: '', brand: '', model: '', year: '', fuelType: 'COMBUSTION', clientId: '' });
+    setIsModalOpen(true);
+  }
+
+  function handleOpenEdit(vehicle: Vehicle) {
+    setEditingId(vehicle.id);
+    setFormData({
+      plate: vehicle.plate,
+      vin: vehicle.vin || '', 
+      brand: vehicle.brand,
+      model: vehicle.model,
+      year: String(vehicle.year),
+      fuelType: vehicle.fuelType,
+      clientId: vehicle.clientId 
+    });
+    setIsModalOpen(true);
+  }
+
+  async function handleSaveVehicle(e: FormEvent) {
     e.preventDefault();
     const token = localStorage.getItem('@FleetCare:token');
     
-    try {
-      await axios.post('http://localhost:3333/vehicles', {
-        ...formData,
-        year: Number(formData.year),
-        clientId: 'becf817d-d254-4edd-ad9a-127f751c45e1' // ID do seu cliente padrão
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+    if (!formData.clientId) {
+      alert("Por favor, selecione o dono do veículo!");
+      return;
+    }
 
-      alert('Veículo cadastrado com sucesso!');
+    try {
+      const payload = { ...formData, year: Number(formData.year) };
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      if (editingId) {
+        await axios.put(`http://localhost:3333/vehicles/${editingId}`, payload, config);
+        alert('Veículo atualizado com sucesso!');
+      } else {
+        await axios.post('http://localhost:3333/vehicles', payload, config);
+        alert('Veículo cadastrado com sucesso!');
+      }
+
       setIsModalOpen(false);
       fetchVehicles();
-      setFormData({ plate: '', vin: '', brand: '', model: '', year: '', fuelType: 'COMBUSTION' });
     } catch (error) {
-      alert('Erro ao cadastrar veículo. Verifique se a placa ou chassi já existem.');
+      alert('Erro ao salvar veículo. Verifique os dados e tente novamente.');
       console.error(error);
     }
   }
@@ -77,12 +124,10 @@ export function Dashboard() {
       await axios.delete(`http://localhost:3333/vehicles/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       alert('Veículo excluído com sucesso!');
       fetchVehicles();
     } catch (error) {
-      console.error("Erro ao excluir", error);
-      alert('Erro ao excluir o veículo. Verifique o console.');
+      alert('Erro ao excluir o veículo.');
     }
   }
 
@@ -94,11 +139,25 @@ export function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6', padding: '24px', position: 'relative' }}>
       
+      {/* CABEÇALHO ATUALIZADO COM O MENU! */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1E3A8A', color: '#fff', padding: '16px 24px', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <LayoutDashboard size={28} color="#F59E0B" />
-          <h2 style={{ margin: 0 }}>FleetCare Painel</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <LayoutDashboard size={28} color="#F59E0B" />
+            <h2 style={{ margin: 0 }}>FleetCare Painel</h2>
+          </div>
+          
+          {/* NAVEGAÇÃO ENTRE TELAS (Agora Veículos está selecionado) */}
+          <nav style={{ display: 'flex', gap: '16px', marginLeft: '32px' }}>
+            <button style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', paddingBottom: '4px' }}>
+              <Car size={20} /> Veículos
+            </button>
+            <button onClick={() => navigate('/clients')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: 'bold' }}>
+              <Users size={20} /> Clientes
+            </button>
+          </nav>
         </div>
+
         <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px' }}>
           <LogOut size={20} /> Sair
         </button>
@@ -112,7 +171,7 @@ export function Dashboard() {
           </div>
           
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenCreate}
             style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
           >
             <Plus size={18} /> Novo Veículo
@@ -142,16 +201,10 @@ export function Dashboard() {
                   <td style={{ padding: '12px' }}>
                     <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '12px', fontSize: '14px', fontWeight: 'bold' }}>{v.fuelType}</span>
                   </td>
-                  <td style={{ padding: '12px' }}>{v.client.name}</td>
+                  <td style={{ padding: '12px' }}>{v.client?.name || 'Sem Cliente'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '12px' }}><Edit size={18} /></button>
-                    <button 
-                      onClick={() => handleDeleteVehicle(v.id)} 
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ef4444' }}
-                      title="Excluir Veículo"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <button onClick={() => handleOpenEdit(v)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#3b82f6', marginRight: '12px' }} title="Editar Veículo"><Edit size={18} /></button>
+                    <button onClick={() => handleDeleteVehicle(v.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Excluir Veículo"><Trash2 size={18} /></button>
                   </td>
                 </tr>
               ))}
@@ -160,16 +213,30 @@ export function Dashboard() {
         )}
       </main>
 
+      {/* MODAL COM CAIXINHA DE CLIENTES */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '100%', maxWidth: '500px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ margin: 0 }}>Cadastrar Novo Veículo</h2>
+              <h2 style={{ margin: 0 }}>{editingId ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><X size={24} color="#6b7280" /></button>
             </div>
 
-            <form onSubmit={handleCreateVehicle} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleSaveVehicle} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              
+              <select 
+                required 
+                value={formData.clientId} 
+                onChange={e => setFormData({...formData, clientId: e.target.value})} 
+                style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#f9fafb', fontWeight: 'bold' }}
+              >
+                <option value="" disabled>Selecione o Dono do Veículo...</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+
               <input placeholder="Placa (ex: ABC-1234)" required value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value})} style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
               <input placeholder="Chassi (VIN)" required value={formData.vin} onChange={e => setFormData({...formData, vin: e.target.value})} style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -185,7 +252,7 @@ export function Dashboard() {
                 </select>
               </div>
               <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', borderRadius: '4px', marginTop: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
-                Salvar Veículo
+                {editingId ? 'Salvar Alterações' : 'Salvar Veículo'}
               </button>
             </form>
 
