@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Car, Edit, Trash2, Users, UserCircle, ShieldAlert } from 'lucide-react'; 
+import { LogOut, LayoutDashboard, Car, Edit, Trash2, Users, UserCircle, ShieldAlert, ClipboardList } from 'lucide-react'; 
 
 interface Client {
   id: string;
@@ -30,7 +30,7 @@ export function Dashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState(''); // Guarda o cargo do usuário
+  const [userRole, setUserRole] = useState('');
 
   const [formData, setFormData] = useState({
     plate: '', vin: '', brand: '', model: '', year: '', fuelType: 'COMBUSTION', clientId: ''
@@ -38,7 +38,7 @@ export function Dashboard() {
 
   async function fetchVehicles() {
     const token = localStorage.getItem('@FleetCare:token');
-    if (!token) return navigate('/');
+    if (!token) { navigate('/'); return; }
 
     try {
       const response = await api.get('/vehicles', {
@@ -71,7 +71,7 @@ export function Dashboard() {
       api.get('/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(response => {
           setUserName(response.data.name);
-          setUserRole(response.data.role); // Salva o cargo ao abrir a tela
+          setUserRole(response.data.role);
         })
         .catch(() => console.error("Erro ao buscar usuário logado"));
     }
@@ -145,8 +145,7 @@ export function Dashboard() {
           <nav style={{ display: 'flex', gap: '16px' }}>
             <button style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}><Car size={20} /> Veículos</button>
             <button onClick={() => navigate('/clients')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={20} /> Clientes</button>
-            
-            {/* NOVO: Botão de Equipe exclusivo para SYS_ADMIN */}
+            <button onClick={() => navigate('/work-orders')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardList size={20} /> Ordens de Serviço</button>
             {userRole === 'SYS_ADMIN' && (
               <button onClick={() => navigate('/users')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldAlert size={20} /> Equipe</button>
             )}
@@ -167,8 +166,8 @@ export function Dashboard() {
       <main style={{ marginTop: '32px', backgroundColor: '#fff', padding: '24px', borderRadius: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2 style={{ margin: 0 }}>Frota</h2>
-          {/* REGRA DE VISUALIZAÇÃO DO BOTÃO NOVO VEÍCULO */}
-          {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) && (
+          {/* ALTERAÇÃO AQUI: Troquei MECHANIC por RECEPTIONIST */}
+          {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'RECEPTIONIST'].includes(userRole) && (
             <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Veículo</button>
           )}
         </div>
@@ -178,6 +177,7 @@ export function Dashboard() {
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
                 <th style={{ padding: '12px' }}>Placa</th>
+                <th style={{ padding: '12px' }}>Marca</th>
                 <th style={{ padding: '12px' }}>Modelo</th>
                 <th style={{ padding: '12px' }}>Dono</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>Ações</th>
@@ -187,11 +187,12 @@ export function Dashboard() {
               {vehicles.map(v => (
                 <tr key={v.id} style={{ borderBottom: '1px solid #eee' }}>
                   <td style={{ padding: '12px', fontWeight: 'bold' }}>{v.plate}</td>
-                  <td style={{ padding: '12px' }}>{v.brand} {v.model}</td>
+                  <td style={{ padding: '12px' }}>{v.brand}</td>
+                  <td style={{ padding: '12px' }}>{v.model}</td>
                   <td style={{ padding: '12px' }}>{v.client?.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    {/* REGRA DE VISUALIZAÇÃO DOS BOTÕES EDITAR/EXCLUIR */}
-                    {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) ? (
+                    {/* ALTERAÇÃO AQUI TAMBÉM: Recepção agora pode editar na tabela principal */}
+                    {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'RECEPTIONIST'].includes(userRole) ? (
                       <>
                         <button onClick={() => handleOpenEdit(v)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }}><Edit size={18}/></button>
                         <button onClick={() => handleDeleteVehicle(v.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18}/></button>
@@ -209,19 +210,26 @@ export function Dashboard() {
 
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>
-            <h3>{editingId ? 'Editar' : 'Novo'} Veículo</h3>
+          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '500px' }}>
+            <h3>{editingId ? 'Editar' : 'Cadastrar'} Veículo</h3>
             <form onSubmit={handleSaveVehicle} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <select required value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} style={{ padding: '10px' }}>
+              <select required value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }}>
                 <option value="">Selecione o Dono...</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <input placeholder="Placa" required value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value})} style={{ padding: '10px' }} />
-              <input placeholder="Chassi" required value={formData.vin} onChange={e => setFormData({...formData, vin: e.target.value})} style={{ padding: '10px' }} />
-              <input placeholder="Marca" required value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} style={{ padding: '10px' }} />
-              <input placeholder="Modelo" required value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} style={{ padding: '10px' }} />
-              <input placeholder="Ano" type="number" required value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} style={{ padding: '10px' }} />
-              <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer' }}>Salvar</button>
+              <input placeholder="Placa" required value={formData.plate} onChange={e => setFormData({...formData, plate: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <input placeholder="Chassi (VIN)" required value={formData.vin} onChange={e => setFormData({...formData, vin: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <input placeholder="Marca" required value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <input placeholder="Modelo" required value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              
+              <select required value={formData.fuelType} onChange={e => setFormData({...formData, fuelType: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }}>
+                <option value="COMBUSTION">Combustão (Flex/Gasolina/Etanol)</option>
+                <option value="ELECTRIC">Elétrico</option>
+                <option value="HYBRID">Híbrido</option>
+              </select>
+
+              <input placeholder="Ano" type="number" required value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', marginTop: '10px' }}>Salvar</button>
               <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer' }}>Cancelar</button>
             </form>
           </div>

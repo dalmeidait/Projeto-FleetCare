@@ -9,7 +9,9 @@ datasource db {
   url      = env("DATABASE_URL") 
 }
 
+// ==========================================================
 // --- MÓDULO DE SEGURANÇA E ACESSO (RBAC) ---
+// ==========================================================
 
 model User {
   id         String   @id @default(uuid())
@@ -18,16 +20,15 @@ model User {
   password   String   // Hash criptografado
   role       Role     @default(MECHANIC)
   department String?  // Departamento
-  isActive   Boolean  @default(true) // <-- NOVO: Controle de Ativo/Inativo para não deletar
+  isActive   Boolean  @default(true) // Controle de Ativo/Inativo para não deletar
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   workOrders WorkOrder[]
 }
 
-// <-- NOVOS CARGOS ADICIONADOS AQUI
 enum Role {
-  SYS_ADMIN      // <-- NOVO: Administrador de Sistemas Supremo
+  SYS_ADMIN      // Administrador de Sistemas Supremo
   ADMIN          // Administrador
   MANAGER        // Gerente
   ADMIN_AUX      // Auxiliar Administrativo
@@ -35,7 +36,9 @@ enum Role {
   RECEPTIONIST   // Recepcionista
 }
 
+// ==========================================================
 // --- MÓDULO DE CLIENTES E VEÍCULOS ---
+// ==========================================================
 
 model Client {
   id        String    @id @default(uuid())
@@ -69,14 +72,32 @@ enum FuelType {
   HYBRID
 }
 
-// --- MÓDULO OPERACIONAL (ORDEM DE SERVIÇO) ---
+// ==========================================================
+// --- MÓDULO OPERACIONAL (ORDEM DE SERVIÇO AVANÇADA) ---
+// ==========================================================
 
 model WorkOrder {
   id          String    @id @default(uuid())
   number      Int       @default(autoincrement())
   status      OsStatus  @default(OPEN)
-  description String
+  priority    Priority  @default(NORMAL) // <-- Nova Prioridade
   
+  // 1. Identificação e Abertura (Recepção)
+  description String    // Reclamação do cliente
+  mileage     Int?      // Quilometragem atual
+  
+  // 2. Diagnóstico Técnico (Área do Mecânico)
+  diagnostic  String?   // O que o mecânico encontrou
+  cause       String?   // Causa do problema
+  notes       String?   // Observações extras/testes
+  
+  // 3. Financeiro
+  laborTotal  Float     @default(0) // Total Mão de obra
+  partsTotal  Float     @default(0) // Total Peças
+  discount    Float     @default(0) // Descontos
+  grandTotal  Float     @default(0) // Valor Final
+  
+  // 4. Datas e Relacionamentos
   startDate   DateTime  @default(now())
   endDate     DateTime?
   
@@ -85,13 +106,63 @@ model WorkOrder {
   
   mechanicId  String?
   mechanic    User?     @relation(fields: [mechanicId], references: [id])
+
+  // 5. Relacionamentos com as novas Tabelas Filhas (As Abas do Frontend)
+  services    OsService[]
+  parts       OsPart[]
+  history     OsHistory[]
 }
 
+// --- ABA DE SERVIÇOS ---
+model OsService {
+  id            String    @id @default(uuid())
+  description   String
+  estimatedTime Float?    // Tempo estimado em horas
+  realTime      Float?    // Tempo real gasto em horas
+  price         Float     // Valor cobrado pelo serviço
+  
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+// --- ABA DE PEÇAS ---
+model OsPart {
+  id            String    @id @default(uuid())
+  name          String
+  quantity      Int
+  unitPrice     Float
+  origin        String?   // Estoque da Oficina ou Comprado fora
+  
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+// --- ABA DE HISTÓRICO (AUDITORIA) ---
+model OsHistory {
+  id            String    @id @default(uuid())
+  action        String    // Ex: "Status alterado para EM ANDAMENTO"
+  createdAt     DateTime  @default(now())
+  
+  userId        String?   // ID de quem fez a alteração
+  
+  workOrderId   String
+  workOrder     WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+// --- LISTAS DE STATUS E PRIORIDADE ---
 enum OsStatus {
   OPEN
   DIAGNOSIS
+  WAITING_APPROVAL // <-- Aguardando aprovação do cliente
   WAITING_PART
   IN_PROGRESS
   FINISHED
   CANCELED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }

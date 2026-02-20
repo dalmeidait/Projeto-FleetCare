@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Users as UsersIcon, Car, ShieldAlert, Edit, Key, UserCircle, CheckCircle, XCircle } from 'lucide-react'; 
+import { LogOut, LayoutDashboard, Users as UsersIcon, Car, ShieldAlert, Edit, Key, UserCircle, CheckCircle, XCircle, ClipboardList } from 'lucide-react'; 
 
 interface User {
   id: string;
@@ -44,14 +44,13 @@ export function Users() {
 
   useEffect(() => {
     const token = localStorage.getItem('@FleetCare:token');
-    if (!token) return navigate('/');
+    if (!token) { navigate('/'); return; } // CORREÇÃO DO TYPESCRIPT AQUI
 
     api.get('/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(response => {
         setUserName(response.data.name);
         setUserRole(response.data.role);
         
-        // 🛡️ REGRA DE OURO: Se não for SYS_ADMIN, expulsa de volta pro Dashboard!
         if (response.data.role !== 'SYS_ADMIN') {
           alert('Acesso negado. Apenas o Administrador de Sistemas pode acessar esta tela.');
           navigate('/dashboard');
@@ -101,12 +100,10 @@ export function Users() {
     
     try {
       if (editingId) {
-        // Na edição, não mandamos a senha. Mandamos o status de isActive.
         const payload = { ...formData };
         await api.put(`/users/${editingId}`, payload, config);
         alert('Usuário atualizado!');
       } else {
-        // Na criação, a senha é obrigatória
         if (!formData.password || formData.password.length < 6) return alert("A senha deve ter no mínimo 6 caracteres!");
         await api.post('/users', formData, config);
         alert('Usuário criado com sucesso!');
@@ -143,6 +140,7 @@ export function Users() {
           <nav style={{ display: 'flex', gap: '16px' }}>
             <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><Car size={20} /> Veículos</button>
             <button onClick={() => navigate('/clients')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><UsersIcon size={20} /> Clientes</button>
+            <button onClick={() => navigate('/work-orders')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardList size={20} /> Ordens de Serviço</button>
             <button style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldAlert size={20} /> Equipe</button>
           </nav>
         </div>
@@ -181,7 +179,8 @@ export function Users() {
                   <td style={{ padding: '12px', color: u.isActive ? '#1f2937' : '#9ca3af' }}>{translateRole(u.role)} <br/><span style={{fontSize: '12px', color: '#6b7280'}}>{u.department}</span></td>
                   <td style={{ padding: '12px', color: u.isActive ? '#1f2937' : '#9ca3af' }}>{u.email}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    {u.isActive ? <CheckCircle size={20} color="#10b981" title="Ativo" /> : <XCircle size={20} color="#ef4444" title="Inativo" />}
+                    {/* CORREÇÃO DO TYPESCRIPT AQUI (SPAN ENVOLVENDO O ÍCONE) */}
+                    {u.isActive ? <span title="Ativo"><CheckCircle size={20} color="#10b981" /></span> : <span title="Inativo"><XCircle size={20} color="#ef4444" /></span>}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     <button onClick={() => handleOpenEdit(u)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }} title="Editar"><Edit size={18}/></button>
@@ -194,7 +193,6 @@ export function Users() {
         )}
       </main>
 
-      {/* MODAL DE CRIAR/EDITAR */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>
@@ -231,7 +229,6 @@ export function Users() {
         </div>
       )}
 
-      {/* MODAL DE TROCAR SENHA */}
       {isPasswordModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>

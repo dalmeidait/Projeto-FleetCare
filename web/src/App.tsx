@@ -4,7 +4,9 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
 import { Profile } from './pages/Profile';
-import { Users } from './pages/Users'; // <-- Importamos a tela de Equipe
+import { Users } from './pages/Users';
+import { WorkOrders } from './pages/WorkOrders';
+import { WorkOrderDetails } from './pages/WorkOrderDetails'; 
 
 function App() {
   return (
@@ -14,7 +16,9 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/users" element={<Users />} /> {/* <-- Nova Rota! */}
+        <Route path="/users" element={<Users />} />
+        <Route path="/work-orders" element={<WorkOrders />} />
+        <Route path="/work-orders/:id" element={<WorkOrderDetails />} /> 
       </Routes>
     </BrowserRouter>
   );

@@ -2,7 +2,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Users, Car, Edit, Trash2, UserCircle, ShieldAlert } from 'lucide-react'; 
+// IMPORTAÇÃO NOVA: Adicionamos o ClipboardList aqui embaixo!
+import { LogOut, LayoutDashboard, Users, Car, Edit, Trash2, UserCircle, ShieldAlert, ClipboardList } from 'lucide-react'; 
 
 interface Client {
   id: string;
@@ -20,7 +21,7 @@ export function Clients() {
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState(''); // Guarda o cargo do usuário
+  const [userRole, setUserRole] = useState(''); 
 
   const [formData, setFormData] = useState({
     name: '', document: '', phone: '', email: ''
@@ -50,7 +51,7 @@ export function Clients() {
       api.get('/me', { headers: { Authorization: `Bearer ${token}` } })
         .then(response => {
           setUserName(response.data.name);
-          setUserRole(response.data.role); // Salva o cargo ao abrir a tela
+          setUserRole(response.data.role); 
         })
         .catch(() => console.error("Erro ao buscar usuário logado"));
     }
@@ -111,7 +112,9 @@ export function Clients() {
             <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><Car size={20} /> Veículos</button>
             <button style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={20} /> Clientes</button>
             
-            {/* NOVO: Botão de Equipe exclusivo para SYS_ADMIN */}
+            {/* NOVO BOTÃO DE ORDENS DE SERVIÇO AQUI */}
+            <button onClick={() => navigate('/work-orders')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardList size={20} /> Ordens de Serviço</button>
+            
             {userRole === 'SYS_ADMIN' && (
               <button onClick={() => navigate('/users')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldAlert size={20} /> Equipe</button>
             )}
@@ -132,7 +135,6 @@ export function Clients() {
       <main style={{ marginTop: '32px', backgroundColor: '#fff', padding: '24px', borderRadius: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2 style={{ margin: 0 }}>Gestão de Clientes</h2>
-          {/* REGRA DE VISUALIZAÇÃO DO BOTÃO NOVO CLIENTE */}
           {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) && (
             <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Cliente</button>
           )}
@@ -145,6 +147,7 @@ export function Clients() {
                 <th style={{ padding: '12px' }}>Nome</th>
                 <th style={{ padding: '12px' }}>Documento</th>
                 <th style={{ padding: '12px' }}>Contato</th>
+                <th style={{ padding: '12px' }}>E-mail</th>
                 <th style={{ padding: '12px', textAlign: 'center' }}>Ações</th>
               </tr>
             </thead>
@@ -154,8 +157,8 @@ export function Clients() {
                   <td style={{ padding: '12px', fontWeight: 'bold' }}>{c.name}</td>
                   <td style={{ padding: '12px' }}>{c.document}</td>
                   <td style={{ padding: '12px' }}>{c.phone}</td>
+                  <td style={{ padding: '12px' }}>{c.email || '-'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    {/* REGRA DE VISUALIZAÇÃO DOS BOTÕES EDITAR/EXCLUIR */}
                     {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) ? (
                       <>
                         <button onClick={() => handleOpenEdit(c)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }}><Edit size={18}/></button>
