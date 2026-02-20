@@ -23,7 +23,6 @@ interface WorkOrder {
   services: OsService[]; parts: OsPart[]; history: OsHistory[];
 }
 
-// "Finalizada" agora é "Concluída"
 const statusTrans: Record<string, string> = { OPEN: 'Aberta', DIAGNOSIS: 'Em Diagnóstico', WAITING_APPROVAL: 'Aguard. Aprovação', WAITING_PART: 'Aguardando Peça', IN_PROGRESS: 'Em Andamento', FINISHED: 'Concluída', CANCELED: 'Cancelada' };
 const statusColors: Record<string, string> = { OPEN: '#3b82f6', DIAGNOSIS: '#f59e0b', WAITING_APPROVAL: '#eab308', WAITING_PART: '#8b5cf6', IN_PROGRESS: '#10b981', FINISHED: '#1f2937', CANCELED: '#ef4444' };
 const priorityTrans: Record<string, string> = { LOW: 'Baixa', NORMAL: 'Normal', HIGH: 'Alta', URGENT: 'Urgente' };
@@ -55,7 +54,6 @@ export function WorkOrderDetails() {
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [vehicleForm, setVehicleForm] = useState({ plate: '', brand: '', model: '', year: '', vin: '', fuelType: '' });
 
-  // Modal de Reabertura
   const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState('');
 
@@ -110,16 +108,12 @@ export function WorkOrderDetails() {
     } catch (error) { alert("Erro ao atualizar status"); }
   }
 
-  // Função para o Gerente reabrir a O.S. com motivo
   async function handleReopenOS(e: FormEvent) {
     e.preventDefault();
     if (!reopenReason) return alert("É obrigatório informar o motivo!");
     const token = localStorage.getItem('@FleetCare:token');
     try {
-      await api.patch(`/work-orders/${id}/status`, { 
-        status: 'IN_PROGRESS', // Ao reabrir, volta para Em Andamento
-        reason: reopenReason 
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.patch(`/work-orders/${id}/status`, { status: 'IN_PROGRESS', reason: reopenReason }, { headers: { Authorization: `Bearer ${token}` } });
       setIsReopenModalOpen(false);
       setReopenReason('');
       fetchOS();
@@ -180,7 +174,6 @@ export function WorkOrderDetails() {
 
   if (loading || !os) return <p style={{ padding: '24px' }}>Carregando Painel da OS...</p>;
 
-  // REGRAS DE TRAVA DE SEGURANÇA (LOCK)
   const isLocked = os.status === 'FINISHED' || os.status === 'CANCELED';
   const canReopen = ['SYS_ADMIN', 'MANAGER'].includes(userRole);
   const canEditTechnical = !isLocked && ['SYS_ADMIN', 'ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole);
@@ -206,7 +199,6 @@ export function WorkOrderDetails() {
         `}
       </style>
 
-      {/* MODO TELA: INTERFACE NORMAL DO SISTEMA */}
       <div className="no-print" style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
         
         {/* CABEÇALHO FIXO DA O.S. */}
@@ -231,7 +223,6 @@ export function WorkOrderDetails() {
               <Printer size={20}/> {isLocked ? 'Imprimir Recibo' : 'Gerar PDF'}
             </button>
 
-            {/* BOTÕES DE STATUS E REABERTURA */}
             {!isLocked && canEditTechnical && (
               <button onClick={() => { setStatusForm(os.status); setIsStatusModalOpen(true); }} style={{ backgroundColor: '#f59e0b', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CheckCircle size={20}/> Mudar Status
@@ -246,7 +237,6 @@ export function WorkOrderDetails() {
           </div>
         </div>
 
-        {/* ALERTA DE O.S. BLOQUEADA */}
         {isLocked && (
           <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '12px', textAlign: 'center', fontWeight: 'bold', borderBottom: '1px solid #f87171' }}>
             ⚠️ Esta Ordem de Serviço está fechada. A edição de serviços, peças e detalhes técnicos está bloqueada.
@@ -255,7 +245,6 @@ export function WorkOrderDetails() {
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
           
-          {/* NAVEGAÇÃO DE ABAS */}
           <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e5e7eb', marginBottom: '24px' }}>
             {[ 
               { id: 'overview', label: 'Visão Geral', icon: <FileText size={18}/> },
@@ -270,7 +259,6 @@ export function WorkOrderDetails() {
             ))}
           </div>
 
-          {/* ================= ABA 1: VISÃO GERAL ================= */}
           {activeTab === 'overview' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -288,70 +276,49 @@ export function WorkOrderDetails() {
                     ) : (
                       <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>⏳ Não atribuído</span>
                     )}
-
                     {!os.mechanic && canEditTechnical && (
-                      <button onClick={handleAssumirOS} style={{ display: 'block', marginTop: '8px', padding: '6px 12px', fontSize: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        🙋‍♂️ Assumir esta O.S.
-                      </button>
+                      <button onClick={handleAssumirOS} style={{ display: 'block', marginTop: '8px', padding: '6px 12px', fontSize: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>🙋‍♂️ Assumir esta O.S.</button>
                     )}
                   </div>
                 </div>
 
                 {canEditTechnical && (
-                  <button onClick={handleOpenVehicleEdit} style={{ marginTop: '24px', background: '#e0e7ff', color: '#3730a3', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
-                    <Car size={18} /> Editar Dados Deste Veículo
-                  </button>
+                  <button onClick={handleOpenVehicleEdit} style={{ marginTop: '24px', background: '#e0e7ff', color: '#3730a3', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}><Car size={18} /> Editar Dados Deste Veículo</button>
                 )}
               </div>
 
               <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ margin: 0, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}><Wrench size={20}/> Dossiê Técnico</h3>
-                  {canEditTechnical && !isEditingDetails && (
-                    <button onClick={() => setIsEditingDetails(true)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Editar</button>
-                  )}
-                  {isEditingDetails && (
-                    <button onClick={handleSaveDetails} style={{ color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><Save size={16}/> Salvar</button>
-                  )}
+                  {canEditTechnical && !isEditingDetails && (<button onClick={() => setIsEditingDetails(true)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Editar</button>)}
+                  {isEditingDetails && (<button onClick={handleSaveDetails} style={{ color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><Save size={16}/> Salvar</button>)}
                 </div>
 
                 <label style={{ fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>Prioridade da OS:</label>
                 {isEditingDetails ? (
                   <select value={detailsForm.priority} onChange={e => setDetailsForm({...detailsForm, priority: e.target.value})} style={{ width: '100%', padding: '10px', marginTop: '4px', marginBottom: '16px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}>
-                    <option value="LOW">Baixa</option>
-                    <option value="NORMAL">Normal</option>
-                    <option value="HIGH">Alta</option>
-                    <option value="URGENT">Urgente</option>
+                    <option value="LOW">Baixa</option><option value="NORMAL">Normal</option><option value="HIGH">Alta</option><option value="URGENT">Urgente</option>
                   </select>
-                ) : (
-                  <p style={{ color: priorityColors[os.priority], fontWeight: 'bold', marginTop: '4px', marginBottom: '16px' }}>{priorityTrans[os.priority]}</p>
-                )}
+                ) : (<p style={{ color: priorityColors[os.priority], fontWeight: 'bold', marginTop: '4px', marginBottom: '16px' }}>{priorityTrans[os.priority]}</p>)}
 
                 <label style={{ fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>Diagnóstico Encontrado:</label>
                 {isEditingDetails ? (
                   <textarea rows={3} value={detailsForm.diagnostic} onChange={e => setDetailsForm({...detailsForm, diagnostic: e.target.value})} style={{ width: '100%', padding: '10px', marginTop: '4px', marginBottom: '16px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical', boxSizing: 'border-box' }} />
-                ) : (
-                  <p style={{ color: '#4b5563', marginTop: '4px', marginBottom: '16px' }}>{os.diagnostic || 'Nenhum diagnóstico registrado ainda.'}</p>
-                )}
+                ) : (<p style={{ color: '#4b5563', marginTop: '4px', marginBottom: '16px' }}>{os.diagnostic || 'Nenhum diagnóstico registrado ainda.'}</p>)}
 
                 <label style={{ fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>Causa do Problema:</label>
                 {isEditingDetails ? (
                   <input value={detailsForm.cause} onChange={e => setDetailsForm({...detailsForm, cause: e.target.value})} style={{ width: '100%', padding: '10px', marginTop: '4px', marginBottom: '16px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
-                ) : (
-                  <p style={{ color: '#4b5563', marginTop: '4px', marginBottom: '16px' }}>{os.cause || 'Não identificada.'}</p>
-                )}
+                ) : (<p style={{ color: '#4b5563', marginTop: '4px', marginBottom: '16px' }}>{os.cause || 'Não identificada.'}</p>)}
 
                 <label style={{ fontWeight: 'bold', fontSize: '14px', color: '#374151' }}>Observações / Testes:</label>
                 {isEditingDetails ? (
                   <textarea rows={2} value={detailsForm.notes} onChange={e => setDetailsForm({...detailsForm, notes: e.target.value})} style={{ width: '100%', padding: '10px', marginTop: '4px', borderRadius: '4px', border: '1px solid #ccc', resize: 'vertical', boxSizing: 'border-box' }} />
-                ) : (
-                  <p style={{ color: '#4b5563', marginTop: '4px' }}>{os.notes || 'Sem observações adicionais.'}</p>
-                )}
+                ) : (<p style={{ color: '#4b5563', marginTop: '4px' }}>{os.notes || 'Sem observações adicionais.'}</p>)}
               </div>
             </div>
           )}
 
-          {/* ================= ABA 2: SERVIÇOS ================= */}
           {activeTab === 'services' && (
             <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -361,16 +328,13 @@ export function WorkOrderDetails() {
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '16px' }}>
                 <thead><tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}><th style={{ padding: '12px' }}>Descrição do Serviço</th><th style={{ padding: '12px' }}>Tempo Est.</th><th style={{ padding: '12px' }}>Valor (R$)</th></tr></thead>
                 <tbody>
-                  {os.services.map(s => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '12px' }}>{s.description}</td><td style={{ padding: '12px' }}>{s.estimatedTime ? `${s.estimatedTime}h` : '-'}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>R$ {s.price.toFixed(2)}</td></tr>
-                  ))}
+                  {os.services.map(s => (<tr key={s.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '12px' }}>{s.description}</td><td style={{ padding: '12px' }}>{s.estimatedTime ? `${s.estimatedTime}h` : '-'}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>R$ {s.price.toFixed(2)}</td></tr>))}
                   {os.services.length === 0 && <tr><td colSpan={3} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>Nenhum serviço lançado.</td></tr>}
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* ================= ABA 3: PEÇAS ================= */}
           {activeTab === 'parts' && (
             <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -380,47 +344,36 @@ export function WorkOrderDetails() {
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '16px' }}>
                 <thead><tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}><th style={{ padding: '12px' }}>Peça</th><th style={{ padding: '12px' }}>Origem</th><th style={{ padding: '12px' }}>Qtd.</th><th style={{ padding: '12px' }}>Valor Unit.</th><th style={{ padding: '12px' }}>Total</th></tr></thead>
                 <tbody>
-                  {os.parts.map(p => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '12px' }}>{p.name}</td><td style={{ padding: '12px' }}>{p.origin}</td><td style={{ padding: '12px' }}>{p.quantity}</td><td style={{ padding: '12px' }}>R$ {p.unitPrice.toFixed(2)}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>R$ {(p.unitPrice * p.quantity).toFixed(2)}</td></tr>
-                  ))}
+                  {os.parts.map(p => (<tr key={p.id} style={{ borderBottom: '1px solid #eee' }}><td style={{ padding: '12px' }}>{p.name}</td><td style={{ padding: '12px' }}>{p.origin}</td><td style={{ padding: '12px' }}>{p.quantity}</td><td style={{ padding: '12px' }}>R$ {p.unitPrice.toFixed(2)}</td><td style={{ padding: '12px', fontWeight: 'bold' }}>R$ {(p.unitPrice * p.quantity).toFixed(2)}</td></tr>))}
                   {os.parts.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>Nenhuma peça lançada.</td></tr>}
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* ================= ABA 4: FINANCEIRO ================= */}
           {activeTab === 'financial' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
               <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', borderLeft: '4px solid #3b82f6', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: 'bold' }}>Total Mão de Obra</p>
-                <h2 style={{ margin: '8px 0 0 0', color: '#1f2937' }}>R$ {os.laborTotal.toFixed(2)}</h2>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: 'bold' }}>Total Mão de Obra</p><h2 style={{ margin: '8px 0 0 0', color: '#1f2937' }}>R$ {os.laborTotal.toFixed(2)}</h2>
               </div>
               <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', borderLeft: '4px solid #8b5cf6', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: 'bold' }}>Total Peças</p>
-                <h2 style={{ margin: '8px 0 0 0', color: '#1f2937' }}>R$ {os.partsTotal.toFixed(2)}</h2>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: 'bold' }}>Total Peças</p><h2 style={{ margin: '8px 0 0 0', color: '#1f2937' }}>R$ {os.partsTotal.toFixed(2)}</h2>
               </div>
               <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', borderLeft: '4px solid #ef4444', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <p style={{ margin: 0, color: '#6b7280', fontSize: '14px', fontWeight: 'bold' }}>Descontos</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                   <h2 style={{ margin: 0, color: '#ef4444' }}>- R$</h2>
-                  {isEditingDetails ? (
-                    <input type="number" value={detailsForm.discount} onChange={e => setDetailsForm({...detailsForm, discount: e.target.value})} style={{ width: '80px', padding: '4px', fontSize: '18px', fontWeight: 'bold', boxSizing: 'border-box' }} />
-                  ) : (
-                    <h2 style={{ margin: 0, color: '#ef4444' }}>{os.discount.toFixed(2)}</h2>
-                  )}
+                  {isEditingDetails ? (<input type="number" value={detailsForm.discount} onChange={e => setDetailsForm({...detailsForm, discount: e.target.value})} style={{ width: '80px', padding: '4px', fontSize: '18px', fontWeight: 'bold', boxSizing: 'border-box' }} />) : (<h2 style={{ margin: 0, color: '#ef4444' }}>{os.discount.toFixed(2)}</h2>)}
                   {isEditingDetails && <button onClick={handleSaveDetails} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>Salvar</button>}
                   {!isEditingDetails && canEditTechnical && <button onClick={() => setIsEditingDetails(true)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }}>Editar</button>}
                 </div>
               </div>
               <div style={{ background: isLocked ? '#1f2937' : '#1E3A8A', padding: '24px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.2)' }}>
-                <p style={{ margin: 0, color: isLocked ? '#9ca3af' : '#93c5fd', fontSize: '14px', fontWeight: 'bold' }}>VALOR TOTAL DA O.S.</p>
-                <h1 style={{ margin: '8px 0 0 0', color: '#fff', fontSize: '36px' }}>R$ {os.grandTotal.toFixed(2)}</h1>
+                <p style={{ margin: 0, color: isLocked ? '#9ca3af' : '#93c5fd', fontSize: '14px', fontWeight: 'bold' }}>VALOR TOTAL DA O.S.</p><h1 style={{ margin: '8px 0 0 0', color: '#fff', fontSize: '36px' }}>R$ {os.grandTotal.toFixed(2)}</h1>
               </div>
             </div>
           )}
 
-          {/* ================= ABA 5: HISTÓRICO ================= */}
           {activeTab === 'history' && (
             <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
               <h3 style={{ marginTop: 0 }}>Linha do Tempo</h3>
@@ -428,10 +381,7 @@ export function WorkOrderDetails() {
                 {os.history.map(h => (
                   <div key={h.id} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                     <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: h.action.includes('REABERTA') ? '#ef4444' : '#10b981', marginTop: '4px' }}></div>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 'bold', color: '#1f2937' }}>{h.action}</p>
-                      <span style={{ fontSize: '12px', color: '#6b7280' }}>{new Date(h.createdAt).toLocaleString('pt-BR')}</span>
-                    </div>
+                    <div><p style={{ margin: 0, fontWeight: 'bold', color: '#1f2937' }}>{h.action}</p><span style={{ fontSize: '12px', color: '#6b7280' }}>{new Date(h.createdAt).toLocaleString('pt-BR')}</span></div>
                   </div>
                 ))}
               </div>
@@ -439,26 +389,14 @@ export function WorkOrderDetails() {
           )}
         </div>
 
-        {/* ========================================= */}
-        {/* MODAIS (JANELAS FLUTUANTES) */}
-        {/* ========================================= */}
-        
-        {/* MODAL DE REABRIR O.S. (Só Gerente) */}
+        {/* MODAIS (Ocultos se travado) */}
         {isReopenModalOpen && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
             <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '500px', borderTop: '4px solid #ef4444' }}>
               <h3 style={{ color: '#ef4444', marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><Unlock size={24}/> Reabrir Ordem de Serviço</h3>
               <p style={{ fontSize: '14px', color: '#4b5563' }}>Atenção: A reabertura deste documento ficará registrada no histórico da auditoria. Por favor, justifique o motivo.</p>
-              
               <form onSubmit={handleReopenOS} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                <textarea 
-                  required 
-                  rows={3}
-                  placeholder="Ex: Cliente retornou no dia seguinte relatando que a peça apresentou defeito de fábrica..." 
-                  value={reopenReason} 
-                  onChange={e => setReopenReason(e.target.value)} 
-                  style={{ padding: '10px', width: '100%', boxSizing: 'border-box', border: '1px solid #ccc', borderRadius: '4px', resize: 'none' }} 
-                />
+                <textarea required rows={3} placeholder="Ex: Cliente retornou no dia seguinte..." value={reopenReason} onChange={e => setReopenReason(e.target.value)} style={{ padding: '10px', width: '100%', boxSizing: 'border-box', border: '1px solid #ccc', borderRadius: '4px', resize: 'none' }} />
                 <button type="submit" style={{ background: '#ef4444', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px' }}>Confirmar Reabertura</button>
                 <button type="button" onClick={() => setIsReopenModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>Cancelar</button>
               </form>
@@ -466,7 +404,6 @@ export function WorkOrderDetails() {
           </div>
         )}
 
-        {/* OUTROS MODAIS DA TELA NORMAL (Ocultos se travado) */}
         {isVehicleModalOpen && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
             <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '500px' }}>
@@ -477,9 +414,7 @@ export function WorkOrderDetails() {
                 <input placeholder="Marca" required value={vehicleForm.brand} onChange={e => setVehicleForm({...vehicleForm, brand: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 <input placeholder="Modelo" required value={vehicleForm.model} onChange={e => setVehicleForm({...vehicleForm, model: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 <select required value={vehicleForm.fuelType} onChange={e => setVehicleForm({...vehicleForm, fuelType: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }}>
-                  <option value="COMBUSTION">Combustão (Flex/Gasolina/Etanol)</option>
-                  <option value="ELECTRIC">Elétrico</option>
-                  <option value="HYBRID">Híbrido</option>
+                  <option value="COMBUSTION">Combustão</option><option value="ELECTRIC">Elétrico</option><option value="HYBRID">Híbrido</option>
                 </select>
                 <input placeholder="Ano" type="number" required value={vehicleForm.year} onChange={e => setVehicleForm({...vehicleForm, year: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 <button type="submit" style={{ background: '#3b82f6', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }}>Salvar Correções</button>
@@ -510,8 +445,8 @@ export function WorkOrderDetails() {
               <h3>Lançar Serviço</h3>
               <form onSubmit={handleAddService} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <input required placeholder="Descrição (Ex: Troca de óleo)" value={serviceForm.description} onChange={e => setServiceForm({...serviceForm, description: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
-                <input type="number" step="0.1" placeholder="Tempo Estimado (em horas)" value={serviceForm.estimatedTime} onChange={e => setServiceForm({...serviceForm, estimatedTime: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
-                <input required type="number" step="0.01" placeholder="Valor Cobrado (R$)" value={serviceForm.price} onChange={e => setServiceForm({...serviceForm, price: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+                <input type="number" step="0.1" placeholder="Tempo Est. (h)" value={serviceForm.estimatedTime} onChange={e => setServiceForm({...serviceForm, estimatedTime: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+                <input required type="number" step="0.01" placeholder="Valor (R$)" value={serviceForm.price} onChange={e => setServiceForm({...serviceForm, price: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Salvar Serviço</button>
                 <button type="button" onClick={() => setIsServiceModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer' }}>Cancelar</button>
               </form>
@@ -524,15 +459,13 @@ export function WorkOrderDetails() {
             <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>
               <h3>Lançar Peça</h3>
               <form onSubmit={handleAddPart} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <input required placeholder="Nome da Peça (Ex: Filtro de Óleo)" value={partForm.name} onChange={e => setPartForm({...partForm, name: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+                <input required placeholder="Nome da Peça" value={partForm.name} onChange={e => setPartForm({...partForm, name: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <input required type="number" placeholder="Quantidade" value={partForm.quantity} onChange={e => setPartForm({...partForm, quantity: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
-                  <input required type="number" step="0.01" placeholder="Valor Unitário (R$)" value={partForm.unitPrice} onChange={e => setPartForm({...partForm, unitPrice: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+                  <input required type="number" placeholder="Qtd." value={partForm.quantity} onChange={e => setPartForm({...partForm, quantity: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+                  <input required type="number" step="0.01" placeholder="V. Unit. (R$)" value={partForm.unitPrice} onChange={e => setPartForm({...partForm, unitPrice: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
                 </div>
                 <select value={partForm.origin} onChange={e => setPartForm({...partForm, origin: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }}>
-                  <option value="Estoque Interno">Estoque Interno</option>
-                  <option value="Comprado Externo">Comprado Fora</option>
-                  <option value="Trazido pelo Cliente">Trazido pelo Cliente</option>
+                  <option value="Estoque Interno">Estoque Interno</option><option value="Comprado Externo">Comprado Fora</option><option value="Trazido pelo Cliente">Trazido pelo Cliente</option>
                 </select>
                 <button type="submit" style={{ background: '#10b981', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Salvar Peça</button>
                 <button type="button" onClick={() => setIsPartModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer' }}>Cancelar</button>
@@ -543,12 +476,12 @@ export function WorkOrderDetails() {
       </div>
 
       {/* =========================================================
-        MODO DE IMPRESSÃO (O PDF INVISÍVEL NA TELA)
+        MODO DE IMPRESSÃO (PDF)
         =========================================================
       */}
       <div className="print-only" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
         
-        {/* CABEÇALHO DO PDF */}
+        {/* CABEÇALHO DO PDF (COM DATA DE CONCLUSÃO) */}
         <div style={{ borderBottom: '2px solid #1E3A8A', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h1 style={{ margin: 0, color: '#1E3A8A', fontSize: '24px' }}>OFICINA AVANCE</h1>
@@ -558,6 +491,10 @@ export function WorkOrderDetails() {
             <h2 style={{ margin: 0, fontSize: '20px', color: '#1f2937' }}>Ordem de Serviço #{os.number}</h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
               <strong>Abertura:</strong> {new Date(os.startDate).toLocaleDateString('pt-BR')} <br/>
+              {/* SE TIVER DATA DE FIM, ELE MOSTRA AQUI NO PDF! */}
+              {os.endDate && (
+                <><strong>Conclusão:</strong> {new Date(os.endDate).toLocaleDateString('pt-BR')} <br/></>
+              )}
               <strong>Status:</strong> {statusTrans[os.status]}
             </p>
           </div>
@@ -597,21 +534,9 @@ export function WorkOrderDetails() {
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>SERVIÇOS EXECUTADOS</h4>
             <table className="pdf-table">
-              <thead>
-                <tr>
-                  <th>Descrição do Serviço</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Tempo</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Valor (R$)</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Descrição do Serviço</th><th style={{ width: '100px', textAlign: 'center' }}>Tempo</th><th style={{ width: '120px', textAlign: 'right' }}>Valor (R$)</th></tr></thead>
               <tbody>
-                {os.services.map(s => (
-                  <tr key={s.id}>
-                    <td>{s.description}</td>
-                    <td style={{ textAlign: 'center' }}>{s.estimatedTime ? `${s.estimatedTime}h` : '-'}</td>
-                    <td style={{ textAlign: 'right' }}>{s.price.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {os.services.map(s => (<tr key={s.id}><td>{s.description}</td><td style={{ textAlign: 'center' }}>{s.estimatedTime ? `${s.estimatedTime}h` : '-'}</td><td style={{ textAlign: 'right' }}>{s.price.toFixed(2)}</td></tr>))}
               </tbody>
             </table>
           </div>
@@ -622,23 +547,9 @@ export function WorkOrderDetails() {
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ margin: '0 0 8px 0', color: '#1f2937' }}>PEÇAS E MATERIAIS</h4>
             <table className="pdf-table">
-              <thead>
-                <tr>
-                  <th>Descrição da Peça</th>
-                  <th style={{ width: '80px', textAlign: 'center' }}>Qtd.</th>
-                  <th style={{ width: '100px', textAlign: 'right' }}>V. Unit.</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Total</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Descrição da Peça</th><th style={{ width: '80px', textAlign: 'center' }}>Qtd.</th><th style={{ width: '100px', textAlign: 'right' }}>V. Unit.</th><th style={{ width: '120px', textAlign: 'right' }}>Total</th></tr></thead>
               <tbody>
-                {os.parts.map(p => (
-                  <tr key={p.id}>
-                    <td>{p.name} <br/><span style={{ fontSize: '10px', color: '#6b7280' }}>Origem: {p.origin}</span></td>
-                    <td style={{ textAlign: 'center' }}>{p.quantity}</td>
-                    <td style={{ textAlign: 'right' }}>{p.unitPrice.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right' }}>{(p.unitPrice * p.quantity).toFixed(2)}</td>
-                  </tr>
-                ))}
+                {os.parts.map(p => (<tr key={p.id}><td>{p.name} <br/><span style={{ fontSize: '10px', color: '#6b7280' }}>Origem: {p.origin}</span></td><td style={{ textAlign: 'center' }}>{p.quantity}</td><td style={{ textAlign: 'right' }}>{p.unitPrice.toFixed(2)}</td><td style={{ textAlign: 'right' }}>{(p.unitPrice * p.quantity).toFixed(2)}</td></tr>))}
               </tbody>
             </table>
           </div>
@@ -647,19 +558,10 @@ export function WorkOrderDetails() {
         {/* RESUMO FINANCEIRO */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px', pageBreakInside: 'avoid' }}>
           <div style={{ width: '300px', border: '1px solid #1E3A8A', borderRadius: '8px', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Subtotal Serviços:</span> <strong>R$ {os.laborTotal.toFixed(2)}</strong>
-            </div>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Subtotal Peças:</span> <strong>R$ {os.partsTotal.toFixed(2)}</strong>
-            </div>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
-              <span>Descontos:</span> <strong>- R$ {os.discount.toFixed(2)}</strong>
-            </div>
-            <div style={{ padding: '16px', backgroundColor: '#1E3A8A', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>VALOR TOTAL:</span>
-              <strong style={{ fontSize: '20px' }}>R$ {os.grandTotal.toFixed(2)}</strong>
-            </div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}><span>Subtotal Serviços:</span> <strong>R$ {os.laborTotal.toFixed(2)}</strong></div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}><span>Subtotal Peças:</span> <strong>R$ {os.partsTotal.toFixed(2)}</strong></div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}><span>Descontos:</span> <strong>- R$ {os.discount.toFixed(2)}</strong></div>
+            <div style={{ padding: '16px', backgroundColor: '#1E3A8A', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ fontSize: '14px', fontWeight: 'bold' }}>VALOR TOTAL:</span><strong style={{ fontSize: '20px' }}>R$ {os.grandTotal.toFixed(2)}</strong></div>
           </div>
         </div>
 
@@ -667,12 +569,8 @@ export function WorkOrderDetails() {
         <div style={{ marginTop: '64px', paddingTop: '16px', borderTop: '1px solid #ccc', fontSize: '10px', color: '#6b7280', textAlign: 'center', pageBreakInside: 'avoid' }}>
           <p style={{ margin: '0 0 32px 0' }}>Garantia de 90 dias para serviços executados. Peças sujeitas à garantia do fabricante. Agradecemos a preferência!</p>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '40px' }}>
-            <div style={{ width: '250px', borderTop: '1px solid #000', paddingTop: '8px' }}>
-              <strong>OFICINA AVANCE</strong><br/>Responsável Técnico
-            </div>
-            <div style={{ width: '250px', borderTop: '1px solid #000', paddingTop: '8px' }}>
-              <strong>{os.vehicle.client.name}</strong><br/>De acordo com os serviços prestados
-            </div>
+            <div style={{ width: '250px', borderTop: '1px solid #000', paddingTop: '8px' }}><strong>OFICINA AVANCE</strong><br/>Responsável Técnico</div>
+            <div style={{ width: '250px', borderTop: '1px solid #000', paddingTop: '8px' }}><strong>{os.vehicle.client.name}</strong><br/>De acordo com os serviços prestados</div>
           </div>
         </div>
 

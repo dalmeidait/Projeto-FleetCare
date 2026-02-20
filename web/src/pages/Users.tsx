@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Users as UsersIcon, Car, ShieldAlert, Edit, Key, UserCircle, CheckCircle, XCircle, ClipboardList } from 'lucide-react'; 
+import { LogOut, LayoutDashboard, Users as UsersIcon, Car, ShieldAlert, Edit, Key, UserCircle, CheckCircle, XCircle, ClipboardList, Search } from 'lucide-react'; // <-- Importado o Search
 
 interface User {
   id: string;
@@ -17,6 +17,9 @@ export function Users() {
   const navigate = useNavigate();
   const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // NOVO: Estado para a barra de pesquisa
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -44,7 +47,7 @@ export function Users() {
 
   useEffect(() => {
     const token = localStorage.getItem('@FleetCare:token');
-    if (!token) { navigate('/'); return; } // CORREÇÃO DO TYPESCRIPT AQUI
+    if (!token) { navigate('/'); return; }
 
     api.get('/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(response => {
@@ -127,6 +130,13 @@ export function Users() {
     }
   }
 
+  // NOVO: Filtra a lista com base no que o SYS_ADMIN digitou na barra
+  const filteredUsers = usersList.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    translateRole(user.role).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (userRole !== 'SYS_ADMIN') return <p style={{textAlign: 'center', marginTop: '50px'}}>Verificando permissões...</p>;
 
   return (
@@ -156,9 +166,23 @@ export function Users() {
       </header>
 
       <main style={{ marginTop: '32px', backgroundColor: '#fff', padding: '24px', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h2 style={{ margin: 0 }}>Gestão de Acessos (Equipe)</h2>
-          <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Funcionário</button>
+          
+          {/* BARRA DE PESQUISA E BOTÃO LADO A LADO */}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f3f4f6', padding: '8px 12px', borderRadius: '6px', width: '300px', border: '1px solid #e5e7eb' }}>
+              <Search size={18} color="#6b7280" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar por nome, email ou cargo..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ border: 'none', background: 'transparent', outline: 'none', marginLeft: '8px', width: '100%', fontSize: '14px' }}
+              />
+            </div>
+            <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Funcionário</button>
+          </div>
         </div>
 
         {loading ? <p>Carregando...</p> : (
@@ -173,13 +197,13 @@ export function Users() {
               </tr>
             </thead>
             <tbody>
-              {usersList.map(u => (
+              {/* ALTERAÇÃO: Agora usamos o array filtrado! */}
+              {filteredUsers.map(u => (
                 <tr key={u.id} style={{ borderBottom: '1px solid #eee', backgroundColor: u.isActive ? 'transparent' : '#fef2f2' }}>
                   <td style={{ padding: '12px', fontWeight: 'bold', color: u.isActive ? '#1f2937' : '#9ca3af' }}>{u.name}</td>
                   <td style={{ padding: '12px', color: u.isActive ? '#1f2937' : '#9ca3af' }}>{translateRole(u.role)} <br/><span style={{fontSize: '12px', color: '#6b7280'}}>{u.department}</span></td>
                   <td style={{ padding: '12px', color: u.isActive ? '#1f2937' : '#9ca3af' }}>{u.email}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
-                    {/* CORREÇÃO DO TYPESCRIPT AQUI (SPAN ENVOLVENDO O ÍCONE) */}
                     {u.isActive ? <span title="Ativo"><CheckCircle size={20} color="#10b981" /></span> : <span title="Inativo"><XCircle size={20} color="#ef4444" /></span>}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -188,24 +212,32 @@ export function Users() {
                   </td>
                 </tr>
               ))}
+              {filteredUsers.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                    Nenhum funcionário encontrado.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         )}
       </main>
 
+      {/* MODAL DE CRIAR/EDITAR */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>
             <h3>{editingId ? 'Editar' : 'Novo'} Funcionário</h3>
             <form onSubmit={handleSaveUser} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input placeholder="Nome Completo" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '10px' }} />
-              <input placeholder="E-mail (Login)" type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ padding: '10px' }} />
+              <input placeholder="Nome Completo" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <input placeholder="E-mail (Login)" type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
               
               {!editingId && (
-                <input placeholder="Senha provisória (mínimo 6)" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ padding: '10px' }} />
+                <input placeholder="Senha provisória (mínimo 6)" type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
               )}
 
-              <select required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} style={{ padding: '10px' }}>
+              <select required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }}>
                 <option value="MECHANIC">Mecânico</option>
                 <option value="RECEPTIONIST">Recepção</option>
                 <option value="ADMIN">Administração</option>
@@ -213,7 +245,7 @@ export function Users() {
                 <option value="SYS_ADMIN">Administrador de Sistemas</option>
               </select>
 
-              <input placeholder="Departamento (Ex: Oficina, Diretoria)" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} style={{ padding: '10px' }} />
+              <input placeholder="Departamento (Ex: Oficina, Diretoria)" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
               
               {editingId && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '10px' }}>
@@ -222,20 +254,21 @@ export function Users() {
                 </label>
               )}
 
-              <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', marginTop: '10px' }}>Salvar</button>
+              <button type="submit" style={{ background: '#1E3A8A', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', marginTop: '10px', fontWeight: 'bold' }}>Salvar</button>
               <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer' }}>Cancelar</button>
             </form>
           </div>
         </div>
       )}
 
+      {/* MODAL DE TROCAR SENHA */}
       {isPasswordModalOpen && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', width: '400px' }}>
             <h3>Alterar Senha do Usuário</h3>
             <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input placeholder="Nova Senha (mínimo 6)" type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ padding: '10px' }} />
-              <button type="submit" style={{ background: '#f59e0b', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', marginTop: '10px' }}>Redefinir Senha</button>
+              <input placeholder="Nova Senha (mínimo 6)" type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ padding: '10px', width: '100%', boxSizing: 'border-box' }} />
+              <button type="submit" style={{ background: '#f59e0b', color: '#fff', padding: '12px', border: 'none', cursor: 'pointer', marginTop: '10px', fontWeight: 'bold' }}>Redefinir Senha</button>
               <button type="button" onClick={() => setIsPasswordModalOpen(false)} style={{ background: '#eee', padding: '10px', border: 'none', cursor: 'pointer' }}>Cancelar</button>
             </form>
           </div>
