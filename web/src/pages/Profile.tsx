@@ -39,12 +39,12 @@ export function Profile() {
     navigate('/');
   }
 
-  // Função para traduzir o cargo do inglês para o português
+  // NOVA TRADUÇÃO DOS CARGOS!
   function translateRole(role: string) {
     const roles: Record<string, string> = {
-      ADMIN: 'Administrador do Sistema',
+      SYS_ADMIN: 'Administrador de Sistemas',
+      ADMIN: 'Administração',
       MANAGER: 'Gerente',
-      ADMIN_AUX: 'Auxiliar Administrativo',
       MECHANIC: 'Mecânico',
       RECEPTIONIST: 'Recepcionista'
     };

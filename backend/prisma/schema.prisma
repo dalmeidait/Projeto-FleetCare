@@ -17,7 +17,8 @@ model User {
   email      String   @unique
   password   String   // Hash criptografado
   role       Role     @default(MECHANIC)
-  department String?  // <-- NOVO CAMPO AQUI: Departamento
+  department String?  // Departamento
+  isActive   Boolean  @default(true) // <-- NOVO: Controle de Ativo/Inativo para não deletar
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -26,6 +27,7 @@ model User {
 
 // <-- NOVOS CARGOS ADICIONADOS AQUI
 enum Role {
+  SYS_ADMIN      // <-- NOVO: Administrador de Sistemas Supremo
   ADMIN          // Administrador
   MANAGER        // Gerente
   ADMIN_AUX      // Auxiliar Administrativo

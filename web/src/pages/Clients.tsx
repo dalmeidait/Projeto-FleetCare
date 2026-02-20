@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Users, Car, Edit, Trash2, UserCircle } from 'lucide-react'; 
+import { LogOut, LayoutDashboard, Users, Car, Edit, Trash2, UserCircle, ShieldAlert } from 'lucide-react'; 
 
 interface Client {
   id: string;
@@ -110,6 +110,11 @@ export function Clients() {
           <nav style={{ display: 'flex', gap: '16px' }}>
             <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><Car size={20} /> Veículos</button>
             <button style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={20} /> Clientes</button>
+            
+            {/* NOVO: Botão de Equipe exclusivo para SYS_ADMIN */}
+            {userRole === 'SYS_ADMIN' && (
+              <button onClick={() => navigate('/users')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldAlert size={20} /> Equipe</button>
+            )}
           </nav>
         </div>
         
@@ -128,7 +133,7 @@ export function Clients() {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2 style={{ margin: 0 }}>Gestão de Clientes</h2>
           {/* REGRA DE VISUALIZAÇÃO DO BOTÃO NOVO CLIENTE */}
-          {['ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) && (
+          {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) && (
             <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Cliente</button>
           )}
         </div>
@@ -151,7 +156,7 @@ export function Clients() {
                   <td style={{ padding: '12px' }}>{c.phone}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {/* REGRA DE VISUALIZAÇÃO DOS BOTÕES EDITAR/EXCLUIR */}
-                    {['ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) ? (
+                    {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'ADMIN_AUX', 'RECEPTIONIST'].includes(userRole) ? (
                       <>
                         <button onClick={() => handleOpenEdit(c)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }}><Edit size={18}/></button>
                         <button onClick={() => handleDeleteClient(c.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18}/></button>

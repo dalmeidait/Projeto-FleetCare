@@ -2,7 +2,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; 
-import { LogOut, LayoutDashboard, Car, Edit, Trash2, Users, UserCircle } from 'lucide-react'; 
+import { LogOut, LayoutDashboard, Car, Edit, Trash2, Users, UserCircle, ShieldAlert } from 'lucide-react'; 
 
 interface Client {
   id: string;
@@ -145,6 +145,11 @@ export function Dashboard() {
           <nav style={{ display: 'flex', gap: '16px' }}>
             <button style={{ background: 'transparent', border: 'none', color: '#fff', fontWeight: 'bold', borderBottom: '2px solid #F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}><Car size={20} /> Veículos</button>
             <button onClick={() => navigate('/clients')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><Users size={20} /> Clientes</button>
+            
+            {/* NOVO: Botão de Equipe exclusivo para SYS_ADMIN */}
+            {userRole === 'SYS_ADMIN' && (
+              <button onClick={() => navigate('/users')} style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldAlert size={20} /> Equipe</button>
+            )}
           </nav>
         </div>
         
@@ -163,7 +168,7 @@ export function Dashboard() {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
           <h2 style={{ margin: 0 }}>Frota</h2>
           {/* REGRA DE VISUALIZAÇÃO DO BOTÃO NOVO VEÍCULO */}
-          {['ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) && (
+          {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) && (
             <button onClick={handleOpenCreate} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>+ Novo Veículo</button>
           )}
         </div>
@@ -186,7 +191,7 @@ export function Dashboard() {
                   <td style={{ padding: '12px' }}>{v.client?.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {/* REGRA DE VISUALIZAÇÃO DOS BOTÕES EDITAR/EXCLUIR */}
-                    {['ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) ? (
+                    {['SYS_ADMIN', 'ADMIN', 'MANAGER', 'MECHANIC'].includes(userRole) ? (
                       <>
                         <button onClick={() => handleOpenEdit(v)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', marginRight: '10px' }}><Edit size={18}/></button>
                         <button onClick={() => handleDeleteVehicle(v.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18}/></button>
